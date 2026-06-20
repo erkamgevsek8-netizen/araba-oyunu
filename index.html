@@ -10,54 +10,83 @@
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        #info {
+        
+        /* HIZ GÖSTERGESİ - SOL ÜST */
+        #hud {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.75);
             color: white;
-            padding: 20px;
+            padding: 15px 20px;
             border-radius: 15px;
             border: 2px solid #ff6600;
             backdrop-filter: blur(10px);
-            min-width: 220px;
             z-index: 100;
         }
         #speed {
-            font-size: 48px;
+            font-size: 64px;
             font-weight: bold;
             color: #ff6600;
             text-shadow: 0 0 20px rgba(255, 102, 0, 0.8);
+            line-height: 1;
         }
-        .gauge {
+        .hud-label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .hud-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin: 5px 0;
-            font-size: 16px;
         }
         #gear {
-            font-size: 36px;
+            font-size: 42px;
             font-weight: bold;
             color: #00ffcc;
+            text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
         }
+        #rpm {
+            color: #ffff00;
+            font-weight: bold;
+        }
+        #playerState {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        /* KONTROL BİLGİSİ - SAĞ ALT (küçük) */
         #controls {
             position: absolute;
             bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #ccc;
+            padding: 12px 15px;
             border-radius: 10px;
-            border: 1px solid #ff6600;
-            font-size: 14px;
-            line-height: 1.6;
+            border: 1px solid #444;
+            font-size: 11px;
+            line-height: 1.8;
             z-index: 100;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        #controls:hover {
+            opacity: 1;
         }
         .key {
-            background: #333;
-            padding: 2px 8px;
-            border-radius: 5px;
-            border: 1px solid #666;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #555;
             font-weight: bold;
+            font-size: 10px;
         }
+        
+        /* BİNME İSTEMİ - ORTA */
         #enterPrompt {
             display: none;
             position: absolute;
@@ -71,31 +100,47 @@
             font-size: 24px;
             border: 2px solid #00ff00;
             z-index: 1000;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { border-color: #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
+            50% { border-color: #00aa00; box-shadow: 0 0 30px rgba(0,255,0,0.6); }
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        <div style="font-size: 14px; color: #aaa;">HIZ (km/h)</div>
+    <!-- HIZ VE VİTES GÖSTERGESİ -->
+    <div id="hud">
+        <div class="hud-label">HIZ (km/h)</div>
         <div id="speed">0</div>
-        <div class="gauge">Devir: <span id="rpm" style="color: #ffff00;">0</span> RPM</div>
-        <div class="gauge">Vites: <span id="gear">N</span></div>
-        <div class="gauge" style="color: #ff9999;">El Freni: <span id="handbrake">KAPALI</span></div>
-        <div class="gauge" style="color: #00ff00; font-size: 20px; margin-top: 10px;">
-            Durum: <span id="playerState" style="font-weight: bold;">ARABADA</span>
+        <div class="hud-row">
+            <span style="color: #aaa;">Devir:</span>
+            <span id="rpm">0</span>
+            <span style="color: #aaa;">RPM</span>
+        </div>
+        <div class="hud-row">
+            <span style="color: #aaa;">Vites:</span>
+            <span id="gear">1</span>
+        </div>
+        <div class="hud-row">
+            <span style="color: #aaa;">El Freni:</span>
+            <span id="handbrake" style="color: #ff9999;">KAPALI</span>
+        </div>
+        <div class="hud-row" style="margin-top: 5px;">
+            <span id="playerState" style="color: #ff6600;">🚗 ARABADA</span>
         </div>
     </div>
 
+    <!-- KONTROL BİLGİSİ -->
     <div id="controls">
-        <strong>🎮 KONTROLLER</strong><br>
-        <span class="key">W/↑</span> Gaz &nbsp; <span class="key">S/↓</span> Fren<br>
-        <span class="key">A/←</span> Sol &nbsp; <span class="key">D/→</span> Sağ<br>
-        <span class="key">Q</span> Vites ▼ &nbsp; <span class="key">E</span> Vites ▲<br>
-        <span class="key">Space</span> El Freni<br>
-        <span class="key">F</span> Arabaya Bin/İn<br>
+        <span class="key">WASD</span> Sürüş &nbsp;
+        <span class="key">Q/E</span> Vites &nbsp;
+        <span class="key">F</span> Bin/İn &nbsp;
+        <span class="key">Space</span> El Freni &nbsp;
         <span class="key">R</span> Sıfırla
     </div>
 
+    <!-- BİNME İSTEMİ -->
     <div id="enterPrompt">
         Arabaya binmek için <strong>F</strong> tuşuna bas!
     </div>
@@ -292,7 +337,7 @@
                 const exitZ = car.position.z + Math.cos(car.rotation.y + Math.PI/2) * 3;
                 playerCharacter.position.set(exitX, 0, exitZ);
                 playerCharacter.visible = true;
-                document.getElementById('playerState').textContent = 'YAYADA';
+                document.getElementById('playerState').textContent = '🚶 YAYADA';
                 document.getElementById('playerState').style.color = '#00ff00';
                 document.getElementById('enterPrompt').style.display = 'none';
             } else {
@@ -301,7 +346,7 @@
                     inCar = true;
                     playerCharacter.visible = false;
                     carState.speed = 0;
-                    document.getElementById('playerState').textContent = 'ARABADA';
+                    document.getElementById('playerState').textContent = '🚗 ARABADA';
                     document.getElementById('playerState').style.color = '#ff6600';
                     document.getElementById('enterPrompt').style.display = 'none';
                 }
@@ -326,7 +371,8 @@
             const speedKmh = Math.abs(carState.speed * 3.6);
             document.getElementById('speed').textContent = Math.round(speedKmh);
             document.getElementById('rpm').textContent = Math.round(carState.rpm);
-            document.getElementById('handbrake').textContent = carState.handbrake ? 'AKTİF' : 'KAPALI';
+            document.getElementById('handbrake').textContent = carState.handbrake ? 'AKTİF 🔴' : 'KAPALI';
+            document.getElementById('handbrake').style.color = carState.handbrake ? '#ff0000' : '#ff9999';
             const gearDisplay = document.getElementById('gear');
             if (carState.gear === 0) gearDisplay.textContent = 'N';
             else if (carState.gear === -1) gearDisplay.textContent = 'R';
