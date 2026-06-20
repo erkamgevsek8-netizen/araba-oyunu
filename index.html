@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚗 Gerçekçi Araba Simülasyonu - İnmeli/Binmeli</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #ff6600;
+            backdrop-filter: blur(10px);
+            min-width: 220px;
+            z-index: 100;
+        }
+        #speed {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff6600;
+            text-shadow: 0 0 20px rgba(255, 102, 0, 0.8);
+        }
+        .gauge {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+        #gear {
+            font-size: 36px;
+            font-weight: bold;
+            color: #00ffcc;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ff6600;
+            font-size: 14px;
+            line-height: 1.6;
+            z-index: 100;
+        }
+        .key {
+            background: #333;
+            padding: 2px 8px;
+            border-radius: 5px;
+            border: 1px solid #666;
+            font-weight: bold;
+        }
+        #enterPrompt {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #00ff00;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 24px;
+            border: 2px solid #00ff00;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div style="font-size: 14px; color: #aaa;">HIZ (km/h)</div>
+        <div id="speed">0</div>
+        <div class="gauge">Devir: <span id="rpm" style="color: #ffff00;">0</span> RPM</div>
+        <div class="gauge">Vites: <span id="gear">N</span></div>
+        <div class="gauge" style="color: #ff9999;">El Freni: <span id="handbrake">KAPALI</span></div>
+        <div class="gauge" style="color: #00ff00; font-size: 20px; margin-top: 10px;">
+            Durum: <span id="playerState" style="font-weight: bold;">ARABADA</span>
+        </div>
+    </div>
+
+    <div id="controls">
+        <strong>🎮 KONTROLLER</strong><br>
+        <span class="key">W/↑</span> Gaz &nbsp; <span class="key">S/↓</span> Fren<br>
+        <span class="key">A/←</span> Sol &nbsp; <span class="key">D/→</span> Sağ<br>
+        <span class="key">Q</span> Vites ▼ &nbsp; <span class="key">E</span> Vites ▲<br>
+        <span class="key">Space</span> El Freni<br>
+        <span class="key">F</span> Arabaya Bin/İn<br>
+        <span class="key">R</span> Sıfırla
+    </div>
+
+    <div id="enterPrompt">
+        Arabaya binmek için <strong>F</strong> tuşuna bas!
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- SAHNE KURULUMU ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 100, 500);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.set(0, 15, -20);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // --- IŞIKLANDIRMA ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+        sunLight.position.set(100, 150, 50);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
+
+        // --- ZEMİN ---
+        const groundGeometry = new THREE.PlaneGeometry(500, 500);
+        const ground = new THREE.Mesh(groundGeometry, new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 }));
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Yol
+        const roadGroup = new THREE.Group();
+        for (let i = -200; i < 200; i += 8) {
+            const line = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.5, 3),
+                new THREE.MeshStandardMaterial({ color: 0xffffff })
+            );
+            line.rotation.x = -Math.PI / 2;
+            line.position.set(0, 0.01, i);
+            roadGroup.add(line);
+        }
+        const roadSurface = new THREE.Mesh(
+            new THREE.PlaneGeometry(8, 500),
+            new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 })
+        );
+        roadSurface.rotation.x = -Math.PI / 2;
+        roadSurface.position.y = 0.005;
+        roadSurface.receiveShadow = true;
+        roadGroup.add(roadSurface);
+        scene.add(roadGroup);
+
+        // Binalar
+        for (let i = 0; i < 60; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 30 + Math.random() * 150;
+            const w = 4 + Math.random() * 10;
+            const h = 8 + Math.random() * 40;
+            const d = 4 + Math.random() * 10;
+            const building = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                new THREE.MeshStandardMaterial({ color: Math.random() * 0x888888 + 0x444444 })
+            );
+            building.position.set(Math.cos(angle) * distance, h/2, Math.sin(angle) * distance);
+            building.castShadow = true;
+            building.receiveShadow = true;
+            scene.add(building);
+        }
+
+        // Ağaçlar
+        for (let i = 0; i < 80; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 20 + Math.random() * 100;
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.5, 4),
+                new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+            );
+            trunk.position.y = 2;
+            trunk.castShadow = true;
+            tree.add(trunk);
+            const foliage = new THREE.Mesh(
+                new THREE.ConeGeometry(2, 5),
+                new THREE.MeshStandardMaterial({ color: 0x228B22 })
+            );
+            foliage.position.y = 5.5;
+            foliage.castShadow = true;
+            tree.add(foliage);
+            tree.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
+            scene.add(tree);
+        }
+
+        // --- ARABA ---
+        const car = new THREE.Group();
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(2.2, 0.8, 4.5),
+            new THREE.MeshStandardMaterial({ color: 0xff3300, roughness: 0.3, metalness: 0.7 })
+        );
+        body.position.y = 0.7;
+        body.castShadow = true;
+        car.add(body);
+
+        const cabin = new THREE.Mesh(
+            new THREE.BoxGeometry(1.8, 0.5, 2.2),
+            new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.9 })
+        );
+        cabin.position.set(0, 1.2, -0.3);
+        cabin.castShadow = true;
+        car.add(cabin);
+
+        const headlightMat = new THREE.MeshStandardMaterial({ color: 0xffffcc, emissive: 0xffff00, emissiveIntensity: 0.5 });
+        [-0.7, 0.7].forEach(x => {
+            const light = new THREE.Mesh(new THREE.SphereGeometry(0.2), headlightMat);
+            light.position.set(x, 0.6, -2.2);
+            car.add(light);
+        });
+
+        const wheels = [];
+        [[-1.2, 1.5], [1.2, 1.5], [-1.2, -1.5], [1.2, -1.5]].forEach(([x, z]) => {
+            const wheel = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.4, 0.4, 0.3, 32),
+                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 })
+            );
+            wheel.rotation.z = Math.PI / 2;
+            wheel.position.set(x, 0.4, z);
+            wheel.castShadow = true;
+            car.add(wheel);
+            wheels.push(wheel);
+        });
+
+        car.position.set(5, 0.4, 5);
+        scene.add(car);
+
+        // --- OYUNCU KARAKTERİ ---
+        const playerCharacter = new THREE.Group();
+        const playerBody = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 1.8, 8),
+            new THREE.MeshStandardMaterial({ color: 0x3366ff })
+        );
+        playerBody.position.y = 0.9;
+        playerCharacter.add(playerBody);
+        const playerHead = new THREE.Mesh(
+            new THREE.SphereGeometry(0.25),
+            new THREE.MeshStandardMaterial({ color: 0xffcc99 })
+        );
+        playerHead.position.y = 2.0;
+        playerCharacter.add(playerHead);
+        playerCharacter.visible = false;
+        playerCharacter.position.set(7, 0, 5);
+        scene.add(playerCharacter);
+
+        // --- OYUN DURUMU ---
+        let inCar = true;
+        const carState = { speed: 0, steering: 0, gear: 1, rpm: 0, handbrake: false };
+        const keys = {};
+        const gearMaxSpeed = [15, 50, 90, 140, 200, 260];
+        const gearRatios = [3.5, 2.5, 1.8, 1.3, 1.0];
+
+        // --- KLAVYE ---
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === ' ') e.preventDefault();
+            if (e.key.toLowerCase() === 'f') toggleCarEntry();
+            if (e.key.toLowerCase() === 'r') resetCar();
+            if (e.key.toLowerCase() === 'e' && inCar) changeGear(1);
+            if (e.key.toLowerCase() === 'q' && inCar) changeGear(-1);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        function toggleCarEntry() {
+            if (inCar) {
+                inCar = false;
+                carState.speed = 0;
+                carState.steering = 0;
+                const exitX = car.position.x + Math.sin(car.rotation.y + Math.PI/2) * 3;
+                const exitZ = car.position.z + Math.cos(car.rotation.y + Math.PI/2) * 3;
+                playerCharacter.position.set(exitX, 0, exitZ);
+                playerCharacter.visible = true;
+                document.getElementById('playerState').textContent = 'YAYADA';
+                document.getElementById('playerState').style.color = '#00ff00';
+                document.getElementById('enterPrompt').style.display = 'none';
+            } else {
+                const distToCar = playerCharacter.position.distanceTo(car.position);
+                if (distToCar < 5) {
+                    inCar = true;
+                    playerCharacter.visible = false;
+                    carState.speed = 0;
+                    document.getElementById('playerState').textContent = 'ARABADA';
+                    document.getElementById('playerState').style.color = '#ff6600';
+                    document.getElementById('enterPrompt').style.display = 'none';
+                }
+            }
+        }
+
+        function resetCar() {
+            carState.speed = 0;
+            carState.steering = 0;
+            carState.gear = 1;
+            car.position.set(5, 0.4, 5);
+            car.rotation.y = 0;
+            if (!inCar) playerCharacter.position.set(7, 0, 5);
+            updateUI();
+        }
+
+        function changeGear(delta) {
+            carState.gear = Math.max(-1, Math.min(5, carState.gear + delta));
+        }
+
+        function updateUI() {
+            const speedKmh = Math.abs(carState.speed * 3.6);
+            document.getElementById('speed').textContent = Math.round(speedKmh);
+            document.getElementById('rpm').textContent = Math.round(carState.rpm);
+            document.getElementById('handbrake').textContent = carState.handbrake ? 'AKTİF' : 'KAPALI';
+            const gearDisplay = document.getElementById('gear');
+            if (carState.gear === 0) gearDisplay.textContent = 'N';
+            else if (carState.gear === -1) gearDisplay.textContent = 'R';
+            else gearDisplay.textContent = carState.gear;
+        }
+
+        let lastTime = performance.now();
+
+        function update(deltaTime) {
+            const dt = Math.min(deltaTime, 0.1);
+            
+            if (inCar) {
+                const throttle = (keys['w'] || keys['arrowup']) ? 1 : 0;
+                const brake = (keys['s'] || keys['arrowdown']) ? 1 : 0;
+                carState.handbrake = keys[' '] || keys['space'];
+                
+                if (keys['a'] || keys['arrowleft']) carState.steering += 2 * dt;
+                else if (keys['d'] || keys['arrowright']) carState.steering -= 2 * dt;
+                else carState.steering *= Math.exp(-5 * dt);
+                carState.steering = Math.max(-0.6, Math.min(0.6, carState.steering));
+                
+                const gearIndex = Math.max(0, Math.min(4, carState.gear - 1));
+                const maxSpeed = gearMaxSpeed[Math.max(0, carState.gear)] / 3.6;
+                const ratio = carState.gear > 0 ? gearRatios[gearIndex] : -3.5;
+                
+                let force = throttle * ratio * 8 - brake * 15 - carState.speed * 0.5;
+                if (carState.handbrake) force -= 25;
+                if (Math.abs(carState.speed) > maxSpeed && force * carState.speed > 0) force = 0;
+                
+                carState.speed += force * dt;
+                carState.rpm = Math.abs(carState.speed) * Math.abs(ratio) * 800;
+                
+                car.rotation.y += carState.steering * carState.speed * dt * 0.5;
+                car.position.x += Math.sin(car.rotation.y) * carState.speed * dt;
+                car.position.z += Math.cos(car.rotation.y) * carState.speed * dt;
+                
+                wheels.forEach(w => w.rotation.x += carState.speed * dt * 5);
+                
+                const camOffset = new THREE.Vector3(
+                    Math.sin(car.rotation.y) * -12, 6,
+                    Math.cos(car.rotation.y) * -12
+                );
+                camera.position.lerp(
+                    new THREE.Vector3(car.position.x + camOffset.x, car.position.y + camOffset.y, car.position.z + camOffset.z),
+                    5 * dt
+                );
+                camera.lookAt(car.position.x, car.position.y + 1, car.position.z);
+            } else {
+                const walkSpeed = 8;
+                const moveX = ((keys['d'] || keys['arrowright']) ? 1 : 0) - ((keys['a'] || keys['arrowleft']) ? 1 : 0);
+                const moveZ = ((keys['s'] || keys['arrowdown']) ? 1 : 0) - ((keys['w'] || keys['arrowup']) ? 1 : 0);
+                
+                playerCharacter.position.x += moveX * walkSpeed * dt;
+                playerCharacter.position.z += moveZ * walkSpeed * dt;
+                
+                camera.position.lerp(
+                    new THREE.Vector3(playerCharacter.position.x + 5, 8, playerCharacter.position.z + 8),
+                    5 * dt
+                );
+                camera.lookAt(playerCharacter.position.x, 1, playerCharacter.position.z);
+                
+                const distToCar = playerCharacter.position.distanceTo(car.position);
+                document.getElementById('enterPrompt').style.display = distToCar < 5 ? 'block' : 'none';
+            }
+            
+            updateUI();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const currentTime = performance.now();
+            update((currentTime - lastTime) / 1000);
+            lastTime = currentTime;
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        carState.gear = 1;
+        updateUI();
+        animate();
+    </script>
+</body>
+</html>
