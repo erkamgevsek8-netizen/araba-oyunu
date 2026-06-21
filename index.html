@@ -2,37 +2,46 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚗 Gerçekçi Araba Simülasyonu - İnmeli/Binmeli</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🚗 Araba Simülasyonu - Mobil & PC</title>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
         body {
             margin: 0;
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: manipulation;
         }
         
-        /* HIZ GÖSTERGESİ - SOL ÜST */
+        /* HIZ GÖSTERGESİ - SOL ÜST (hem mobil hem PC'de gözükür) */
         #hud {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 15px;
+            left: 15px;
             background: rgba(0, 0, 0, 0.75);
             color: white;
-            padding: 15px 20px;
+            padding: 12px 16px;
             border-radius: 15px;
             border: 2px solid #ff6600;
             backdrop-filter: blur(10px);
-            z-index: 100;
+            z-index: 200;
+            min-width: 140px;
         }
         #speed {
-            font-size: 64px;
+            font-size: 52px;
             font-weight: bold;
             color: #ff6600;
             text-shadow: 0 0 20px rgba(255, 102, 0, 0.8);
             line-height: 1;
         }
         .hud-label {
-            font-size: 12px;
+            font-size: 10px;
             color: #aaa;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -40,11 +49,12 @@
         .hud-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin: 5px 0;
+            gap: 8px;
+            margin: 4px 0;
+            font-size: 14px;
         }
         #gear {
-            font-size: 42px;
+            font-size: 36px;
             font-weight: bold;
             color: #00ffcc;
             text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
@@ -55,35 +65,7 @@
         }
         #playerState {
             font-weight: bold;
-            font-size: 16px;
-        }
-        
-        /* KONTROL BİLGİSİ - SAĞ ALT (küçük) */
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            color: #ccc;
-            padding: 12px 15px;
-            border-radius: 10px;
-            border: 1px solid #444;
-            font-size: 11px;
-            line-height: 1.8;
-            z-index: 100;
-            opacity: 0.7;
-            transition: opacity 0.3s;
-        }
-        #controls:hover {
-            opacity: 1;
-        }
-        .key {
-            background: rgba(255,255,255,0.15);
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid #555;
-            font-weight: bold;
-            font-size: 10px;
+            font-size: 14px;
         }
         
         /* BİNME İSTEMİ - ORTA */
@@ -95,54 +77,249 @@
             transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.9);
             color: #00ff00;
-            padding: 20px 40px;
+            padding: 15px 25px;
             border-radius: 15px;
-            font-size: 24px;
+            font-size: 20px;
             border: 2px solid #00ff00;
             z-index: 1000;
             animation: pulse 1.5s infinite;
+            text-align: center;
+            pointer-events: none;
         }
         @keyframes pulse {
             0%, 100% { border-color: #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
             50% { border-color: #00aa00; box-shadow: 0 0 30px rgba(0,255,0,0.6); }
         }
+        
+        /* ========== MOBİL KONTROLLER ========== */
+        #mobileControls {
+            display: none; /* Başlangıçta gizli, mobilde gösterilecek */
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 150;
+            pointer-events: none;
+        }
+        
+        /* Direksiyon - sol alt */
+        #steeringWheel {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 150px;
+            height: 150px;
+            pointer-events: auto;
+        }
+        .steer-btn {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        #steerLeft {
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+        #steerRight {
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+        }
+        #steerLeft:active, #steerRight:active {
+            background: rgba(255,102,0,0.6);
+            border-color: #ff6600;
+        }
+        
+        /* Gaz/Fren - sağ alt */
+        #pedals {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .pedal-btn {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+        }
+        #gasPedal {
+            background: rgba(0,255,0,0.3);
+            font-size: 24px;
+        }
+        #brakePedal {
+            background: rgba(255,0,0,0.3);
+            font-size: 24px;
+        }
+        #gasPedal:active {
+            background: rgba(0,255,0,0.8);
+            box-shadow: 0 0 30px rgba(0,255,0,0.6);
+        }
+        #brakePedal:active {
+            background: rgba(255,0,0,0.8);
+            box-shadow: 0 0 30px rgba(255,0,0,0.6);
+        }
+        
+        /* Vites butonları - orta alt */
+        #gearBox {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            pointer-events: auto;
+        }
+        .gear-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 15px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #00ffcc;
+            color: #00ffcc;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gear-btn:active {
+            background: rgba(0,255,204,0.3);
+            box-shadow: 0 0 20px rgba(0,255,204,0.5);
+        }
+        
+        /* El freni butonu - üst orta */
+        #handbrakeBtn {
+            position: absolute;
+            bottom: 50%;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: rgba(255,0,0,0.3);
+            border: 2px solid #ff0000;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #handbrakeBtn.active {
+            background: rgba(255,0,0,0.8);
+            box-shadow: 0 0 20px rgba(255,0,0,0.7);
+        }
+        
+        /* Bin/İn butonu - mobil */
+        #enterBtn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(0,128,255,0.4);
+            border: 2px solid #0088ff;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: auto;
+            display: none;
+        }
+        
+        /* Mobil uyarı */
+        #mobileNotice {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: #ff6600;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 300;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <!-- HIZ VE VİTES GÖSTERGESİ -->
+    <!-- HIZ GÖSTERGESİ - Her zaman görünür -->
     <div id="hud">
         <div class="hud-label">HIZ (km/h)</div>
         <div id="speed">0</div>
         <div class="hud-row">
             <span style="color: #aaa;">Devir:</span>
             <span id="rpm">0</span>
-            <span style="color: #aaa;">RPM</span>
         </div>
         <div class="hud-row">
             <span style="color: #aaa;">Vites:</span>
             <span id="gear">1</span>
         </div>
         <div class="hud-row">
-            <span style="color: #aaa;">El Freni:</span>
-            <span id="handbrake" style="color: #ff9999;">KAPALI</span>
-        </div>
-        <div class="hud-row" style="margin-top: 5px;">
             <span id="playerState" style="color: #ff6600;">🚗 ARABADA</span>
         </div>
-    </div>
-
-    <!-- KONTROL BİLGİSİ -->
-    <div id="controls">
-        <span class="key">WASD</span> Sürüş &nbsp;
-        <span class="key">Q/E</span> Vites &nbsp;
-        <span class="key">F</span> Bin/İn &nbsp;
-        <span class="key">Space</span> El Freni &nbsp;
-        <span class="key">R</span> Sıfırla
     </div>
 
     <!-- BİNME İSTEMİ -->
     <div id="enterPrompt">
         Arabaya binmek için <strong>F</strong> tuşuna bas!
+    </div>
+    
+    <!-- Mobil uyarı -->
+    <div id="mobileNotice">
+        📱 Mobil mod aktif<br>
+        <small>Dokunmatik kontrolleri kullan</small>
+    </div>
+
+    <!-- ========== MOBİL DOKUNMATİK KONTROLLER ========== -->
+    <div id="mobileControls">
+        <!-- Direksiyon -->
+        <div id="steeringWheel">
+            <div class="steer-btn" id="steerLeft">◀</div>
+            <div class="steer-btn" id="steerRight">▶</div>
+        </div>
+        
+        <!-- Gaz / Fren -->
+        <div id="pedals">
+            <div class="pedal-btn" id="gasPedal">🟢</div>
+            <div class="pedal-btn" id="brakePedal">🔴</div>
+        </div>
+        
+        <!-- Vites -->
+        <div id="gearBox">
+            <div class="gear-btn" id="gearDown">▼</div>
+            <div class="gear-btn" id="gearUp">▲</div>
+        </div>
+        
+        <!-- El Freni -->
+        <div id="handbrakeBtn">EL<br>FREN</div>
+        
+        <!-- Bin/İn -->
+        <div id="enterBtn">BİN/<br>İN</div>
     </div>
 
     <script type="importmap">
@@ -155,6 +332,22 @@
 
     <script type="module">
         import * as THREE from 'three';
+
+        // --- CİHAZ TESPİTİ ---
+        const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || 
+                         ('ontouchstart' in window && window.innerWidth < 1024);
+        
+        console.log('Cihaz:', isMobile ? 'MOBİL' : 'BİLGİSAYAR');
+        
+        // Mobil kontrolleri göster/gizle
+        if (isMobile) {
+            document.getElementById('mobileControls').style.display = 'block';
+            document.getElementById('enterBtn').style.display = 'flex';
+            document.getElementById('mobileNotice').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('mobileNotice').style.display = 'none';
+            }, 3000);
+        }
 
         // --- SAHNE KURULUMU ---
         const scene = new THREE.Scene();
@@ -181,8 +374,10 @@
         scene.add(sunLight);
 
         // --- ZEMİN ---
-        const groundGeometry = new THREE.PlaneGeometry(500, 500);
-        const ground = new THREE.Mesh(groundGeometry, new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 }));
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(500, 500),
+            new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 })
+        );
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
@@ -311,11 +506,13 @@
         let inCar = true;
         const carState = { speed: 0, steering: 0, gear: 1, rpm: 0, handbrake: false };
         const keys = {};
+        const mobileInput = { left: false, right: false, gas: false, brake: false };
         const gearMaxSpeed = [15, 50, 90, 140, 200, 260];
         const gearRatios = [3.5, 2.5, 1.8, 1.3, 1.0];
 
-        // --- KLAVYE ---
+        // --- KLAVYE DİNLEYİCİLERİ (PC) ---
         window.addEventListener('keydown', (e) => {
+            if (isMobile) return;
             keys[e.key.toLowerCase()] = true;
             if (e.key === ' ') e.preventDefault();
             if (e.key.toLowerCase() === 'f') toggleCarEntry();
@@ -325,8 +522,87 @@
         });
 
         window.addEventListener('keyup', (e) => {
+            if (isMobile) return;
             keys[e.key.toLowerCase()] = false;
         });
+
+        // --- MOBİL DOKUNMATİK KONTROLLER ---
+        if (isMobile) {
+            // Direksiyon
+            const steerLeft = document.getElementById('steerLeft');
+            const steerRight = document.getElementById('steerRight');
+            
+            steerLeft.addEventListener('touchstart', (e) => { e.preventDefault(); mobileInput.left = true; });
+            steerLeft.addEventListener('touchend', () => { mobileInput.left = false; });
+            steerLeft.addEventListener('touchcancel', () => { mobileInput.left = false; });
+            
+            steerRight.addEventListener('touchstart', (e) => { e.preventDefault(); mobileInput.right = true; });
+            steerRight.addEventListener('touchend', () => { mobileInput.right = false; });
+            steerRight.addEventListener('touchcancel', () => { mobileInput.right = false; });
+
+            // Gaz/Fren
+            const gasPedal = document.getElementById('gasPedal');
+            const brakePedal = document.getElementById('brakePedal');
+            
+            gasPedal.addEventListener('touchstart', (e) => { e.preventDefault(); mobileInput.gas = true; });
+            gasPedal.addEventListener('touchend', () => { mobileInput.gas = false; });
+            gasPedal.addEventListener('touchcancel', () => { mobileInput.gas = false; });
+            
+            brakePedal.addEventListener('touchstart', (e) => { e.preventDefault(); mobileInput.brake = true; });
+            brakePedal.addEventListener('touchend', () => { mobileInput.brake = false; });
+            brakePedal.addEventListener('touchcancel', () => { mobileInput.brake = false; });
+
+            // Vites
+            document.getElementById('gearUp').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (inCar) changeGear(1);
+            });
+            document.getElementById('gearDown').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (inCar) changeGear(-1);
+            });
+
+            // El Freni
+            const handbrakeBtn = document.getElementById('handbrakeBtn');
+            handbrakeBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                carState.handbrake = !carState.handbrake;
+                handbrakeBtn.classList.toggle('active', carState.handbrake);
+            });
+
+            // Bin/İn
+            document.getElementById('enterBtn').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                toggleCarEntry();
+            });
+
+            // Mouse ile de çalışsın (PC'de test için)
+            steerLeft.addEventListener('mousedown', () => { mobileInput.left = true; });
+            steerLeft.addEventListener('mouseup', () => { mobileInput.left = false; });
+            steerLeft.addEventListener('mouseleave', () => { mobileInput.left = false; });
+            
+            steerRight.addEventListener('mousedown', () => { mobileInput.right = true; });
+            steerRight.addEventListener('mouseup', () => { mobileInput.right = false; });
+            steerRight.addEventListener('mouseleave', () => { mobileInput.right = false; });
+            
+            gasPedal.addEventListener('mousedown', () => { mobileInput.gas = true; });
+            gasPedal.addEventListener('mouseup', () => { mobileInput.gas = false; });
+            gasPedal.addEventListener('mouseleave', () => { mobileInput.gas = false; });
+            
+            brakePedal.addEventListener('mousedown', () => { mobileInput.brake = true; });
+            brakePedal.addEventListener('mouseup', () => { mobileInput.brake = false; });
+            brakePedal.addEventListener('mouseleave', () => { mobileInput.brake = false; });
+            
+            document.getElementById('gearUp').addEventListener('mousedown', () => { if (inCar) changeGear(1); });
+            document.getElementById('gearDown').addEventListener('mousedown', () => { if (inCar) changeGear(-1); });
+            
+            handbrakeBtn.addEventListener('mousedown', () => {
+                carState.handbrake = !carState.handbrake;
+                handbrakeBtn.classList.toggle('active', carState.handbrake);
+            });
+            
+            document.getElementById('enterBtn').addEventListener('mousedown', () => { toggleCarEntry(); });
+        }
 
         function toggleCarEntry() {
             if (inCar) {
@@ -340,6 +616,7 @@
                 document.getElementById('playerState').textContent = '🚶 YAYADA';
                 document.getElementById('playerState').style.color = '#00ff00';
                 document.getElementById('enterPrompt').style.display = 'none';
+                if (isMobile) document.getElementById('enterBtn').style.display = 'flex';
             } else {
                 const distToCar = playerCharacter.position.distanceTo(car.position);
                 if (distToCar < 5) {
@@ -349,6 +626,7 @@
                     document.getElementById('playerState').textContent = '🚗 ARABADA';
                     document.getElementById('playerState').style.color = '#ff6600';
                     document.getElementById('enterPrompt').style.display = 'none';
+                    if (isMobile) document.getElementById('enterBtn').style.display = 'flex';
                 }
             }
         }
@@ -371,8 +649,6 @@
             const speedKmh = Math.abs(carState.speed * 3.6);
             document.getElementById('speed').textContent = Math.round(speedKmh);
             document.getElementById('rpm').textContent = Math.round(carState.rpm);
-            document.getElementById('handbrake').textContent = carState.handbrake ? 'AKTİF 🔴' : 'KAPALI';
-            document.getElementById('handbrake').style.color = carState.handbrake ? '#ff0000' : '#ff9999';
             const gearDisplay = document.getElementById('gear');
             if (carState.gear === 0) gearDisplay.textContent = 'N';
             else if (carState.gear === -1) gearDisplay.textContent = 'R';
@@ -384,13 +660,26 @@
         function update(deltaTime) {
             const dt = Math.min(deltaTime, 0.1);
             
-            if (inCar) {
-                const throttle = (keys['w'] || keys['arrowup']) ? 1 : 0;
-                const brake = (keys['s'] || keys['arrowdown']) ? 1 : 0;
+            // Giriş kontrolü
+            let throttle, brake, steerLeft, steerRight;
+            
+            if (isMobile) {
+                throttle = mobileInput.gas ? 1 : 0;
+                brake = mobileInput.brake ? 1 : 0;
+                steerLeft = mobileInput.left;
+                steerRight = mobileInput.right;
+            } else {
+                throttle = (keys['w'] || keys['arrowup']) ? 1 : 0;
+                brake = (keys['s'] || keys['arrowdown']) ? 1 : 0;
+                steerLeft = keys['a'] || keys['arrowleft'];
+                steerRight = keys['d'] || keys['arrowright'];
                 carState.handbrake = keys[' '] || keys['space'];
-                
-                if (keys['a'] || keys['arrowleft']) carState.steering += 2 * dt;
-                else if (keys['d'] || keys['arrowright']) carState.steering -= 2 * dt;
+            }
+            
+            if (inCar) {
+                // Direksiyon
+                if (steerLeft) carState.steering += 2 * dt;
+                else if (steerRight) carState.steering -= 2 * dt;
                 else carState.steering *= Math.exp(-5 * dt);
                 carState.steering = Math.max(-0.6, Math.min(0.6, carState.steering));
                 
@@ -422,8 +711,8 @@
                 camera.lookAt(car.position.x, car.position.y + 1, car.position.z);
             } else {
                 const walkSpeed = 8;
-                const moveX = ((keys['d'] || keys['arrowright']) ? 1 : 0) - ((keys['a'] || keys['arrowleft']) ? 1 : 0);
-                const moveZ = ((keys['s'] || keys['arrowdown']) ? 1 : 0) - ((keys['w'] || keys['arrowup']) ? 1 : 0);
+                const moveX = (steerRight ? 1 : 0) - (steerLeft ? 1 : 0);
+                const moveZ = (brake ? 1 : 0) - (throttle ? 1 : 0);
                 
                 playerCharacter.position.x += moveX * walkSpeed * dt;
                 playerCharacter.position.z += moveZ * walkSpeed * dt;
@@ -458,6 +747,8 @@
         carState.gear = 1;
         updateUI();
         animate();
+        
+        console.log('✅ Oyun hazır!', isMobile ? 'Mobil mod' : 'PC mod');
     </script>
 </body>
 </html>
